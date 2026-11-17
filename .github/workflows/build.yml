@@ -4,20 +4,27 @@ name: Build CelestBot Windows
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract CelestBot source
+      - name: Extract CelestBot ZIP
         shell: pwsh
         run: |
           $zip = Get-ChildItem -Path . -Filter "CelestBot_Source.zip" -File | Select-Object -First 1
-          if (-not $zip) { Write-Error "CelestBot_Source.zip introuvable"; exit 1 }
+
+          if (-not $zip) {
+            Write-Error "CelestBot_Source.zip introuvable"
+            exit 1
+          }
+
           Expand-Archive -Path $zip.FullName -DestinationPath source -Force
 
       - name: Setup .NET 8
@@ -25,14 +32,21 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Build EXE
+      - name: Build CelestBot EXE
         shell: pwsh
         run: |
-          dotnet publish "source/CelestBot.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+          dotnet publish "source/CelestBot.csproj" `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -o publish
 
       - name: Upload CelestBot
         uses: actions/upload-artifact@v4
         with:
           name: CelestBot-Windows
           path: publish/
+          if-no-files-found: error
           
